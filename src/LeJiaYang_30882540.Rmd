@@ -1,0 +1,974 @@
+---
+title: "Economic, political, and social factors contributing to or hindering the Clean Water and Sanitation progress of ASEAN countries"
+author: "Jia Yang Le"
+date: "2023-04-01"
+output:
+  html_document:
+    code_folding: show
+    toc: yes
+    toc_depth: 4
+  papaja::apa6_pdf:
+    citation_package: biblatex
+  word_document:
+    toc: yes
+    toc_depth: '4'
+nocite: '@*'
+link-citations: yes
+bibliography:
+- packages.bib
+- my-ref.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A. Topic Description 
+
+According to Geall and Al'Afghani [-@Geall2021], there are still close to 844 million people without access to safe water services worldwide. In Southeast Asia, that figure is approximately 110 million. The research of Lawrencia, Maniam, Chuah, and Poh [-@Lawrencia2023] mentioned an average gap of 32% between urban and rural populations in the matter of safe water access globally. To ASEAN countries, this is concerning because half of the Southeast Asia population lives in rural locales, increasing the proneness of the region towards clean water issues. The consequences of water, sanitation, and hygiene (WASH) dilemmas are also evident. A yearly estimation of 525,000 children is killed from diarrhoea because of faecal contamination [@Mertens2023]. Thus, the topic of clean water and sanitation among ASEAN countries is crucial for further investigation.
+
+This study aims to conduct an inquiry into:
+
+1. Does economic circumstances such as poverty, income inequality, foreign investment, economic complexity, and labor market have an effect towards ASEAN countries' progress of achieving country-wide clean water and sanitation? 
+
+2. Does political factors such as liberty rights, voting rights, and corruption perceptions influence the progress of clean water and sanitation among ASEAN nations?
+
+3. Social factors such as national spending on healthcare, human development, and hunger issues. Do they positively or negatively correlate with the clean water and sanitation progress in the ASEAN region?
+
+In other words, the paper attempts to explain the clean water and sanitation situations in ASEAN countries by their economic, political, and social developments, such as the poverty circumstances, human development state, and the state of affairs regarding liberty and voting rights. Ideally, the identified variables would then be of assistance to the decision-making processes of government bodies alongside related non-profit organizations by providing a factual ground of intertwined relationships between clean water improvements and signs of economic, political, and social progress.
+
+```{r}
+rm(list=ls()) #clear environment
+
+getwd() #ensure correctness of working directory
+```
+
+```{r, warning= FALSE, message= FALSE}
+# installing packages
+#install.packages("bookdown")
+#install.packages("tidyverse")
+#install.packages("hablar")
+#install.packages("gtsummary")
+#install.packages("wbstats")
+#install.packages("corrplot")
+
+# loading the packages
+library(readxl)
+library(bookdown)
+library(tidyverse)
+library(hablar)
+library(gtsummary)
+library(wbstats)
+library(corrplot)
+```
+
+```{r}
+knitr::write_bib(c(.packages(), "bookdown"), file = "packages.bib") #add reference entries to packages used
+```
+
+## C. Data Explanation
+
+```{r, warning = FALSE, message = FALSE}
+water_indicators <- wb_search(pattern = "water") # searching for the appropriate base data
+
+base_data <- wb(country = c("MYS", "SGP", "IDN", "THA", "MMR", "LAO", "KHM", "VNM", "PHL", "BRN"), indicator = c("SH.H2O.SMDW.ZS"), startdate = 2001, enddate = 2020) # ASEAN countries' % of population using safely managed water data from 2001 to 2020
+
+indicators_search <- wb_search(pattern = "gini|Poverty|Foreign Direct Investment|economic fitness|labor force") # searching for the appropriate economic variables
+
+base_data2 <- wb(country = c("MYS", "SGP", "IDN", "THA", "MMR", "LAO", "KHM", "VNM", "PHL", "BRN"), indicator = c("SI.POV.GINI", "BX.KLT.DINV.WD.GD.ZS", "SI.POV.NAHC", "EF.EFM.OVRL.XD", "SL.TLF.ACTI.ZS"), startdate = 2001, enddate = 2020) # X variables
+
+sanitation_and_mortality_data <- wb(country = c("MYS", "SGP", "IDN", "THA", "MMR", "LAO", "KHM", "VNM", "PHL", "BRN"), indicator = c("SH.STA.HYGN.ZS","SH.STA.WASH.P5"),  startdate = 2001, enddate = 2020) # offering different perspectives from base data, namely, % of population with access to basic hand washing facilities and mortality rate due to usage of unsafe water 
+
+#additional data
+civil_liberties <- read_excel("data/civil liberty.xlsx") #political
+CPI <- read_excel("data/CPI 2021.xlsx") #political
+electoral_democracy <- read_excel("data/electoral democracy .xlsx") #political
+health_expense_as_GDP <- read_excel("data/health as GDP.xlsx") #social
+human_development_index <- read_excel("data/human-development-index.xlsx") #social
+prevalence_of_undernourishment_of_population <- read_excel("data/Prevalence of undernourishment (% of population).xlsx") #social
+```
+
+### Methods used to collect data
+The wb_search() function from the wbstats package is utilized for the initial search of clean water and sanitation indicators. Through wb_search(), the indicator ID for a clean water indicator "Percentage of population using safely managed water" was found. In sequence, we incorporate the indicator ID and filter to only have ASEAN countries' data from 2001 to 2020 for the regarded indicator using the wb() function. The data frame is named "base_data". 
+
+We then begin the search for economic indicators that could potentially share a hidden correlation with the clean water and sanitation indicators by again using the wb_search() function. Through the search, we successfully identified 5 potential economic indicators, namely, GINI coefficient, poverty headcount ratio, Foreign Direct Investment net inflow, economic fitness metric, and labor force participation rate. We then use the wb() function to capture the regarded data for ASEAN countries for the same period of 2001-2020. The data frame is named "base_data2". 
+
+Because the indicator "percentage of population using safely managed water" only covers the topic of clean water but ignores the sanitation part of the regarded SDG Goal, we once again utilize the wb() function to add data from indicators "percentage of population with access to basic handwashing facilities" and "mortality rate attributed to usage of unsafe water or unhygienic practice" for ASEAN countries from 2001-2020. The data frame is named "sanitation_and_mortality_data". 
+
+To collect additional data i.e. political and social indicators, various sources were utilized. Namely, data of political indicators civil liberty score and electoral democracy rating was found in Our World in Data [-@Ourworld] while the corruption perception index data was found in Transparency International [-@TransparencyInternational]. On the other hand, data of social indicators current health expenditure as % of GDP and prevalence of undernourishment (% of population) is found from World Bank [-@healthexpen] while human development index was found in Our World in Data [-@Ourworld]. To read the additional datas into R markdown, the read_excel() function is utilized. 
+
+
+### Scope of data
+Aside from having the base data of ASEAN countries' population proportion of using safely managed water (2001-2020), the scope of the data is lengthened to offer two additional outlook on the topic of Clean Water and Sanitation in the ASEAN region [@R-wbstats; @wbstats2020]. Namely, the population proportion with access to basic handwashing facilities and the mortality rate due to unsafe water and sanitation usage [@R-wbstats; @wbstats2020]. The population proportion with access to basic hand washing facilities incorporates sanitation considerations into the picture; the mortality rate attributed to unsafe water and sanitation reflects the consequences of clean water and sanitation management failures. 
+
+To explain Southeast Asia's clean water and sanitation progress in contexts of potentially effectual economic factors, supplementary data are acquired from World Bank, i.e. GINI coefficients from 2001 to 2020 as a proxy measure for income inequalities, net inflow of Foreign Direct Investment (% of GDP) to measure the economic openness of ASEAN countries, population proportion living under national poverty lines to get a glimpse of the poverty-lifting progresses of the mentioned nations, Economic Fitness Metric (UEF) to gain knowledge upon the countries' economic diversification and ability to produce relatively complex goods, and labor force participation rate to measure the economic activeness of its working population [@R-wbstats; @wbstats2020]. To summarize, by having these economic indicators, we would be able to grasp a better understanding on whether income inequalities, trade openness, state of poverty, economic complexity, and labor market of ASEAN countries potentially share meaningful relationships with their respective progress of clean water and sanitation. 
+
+In addition to the economic point of view, additional data are imported from various sources to explore the relationship between the progress of clean water and sanitation in ASEAN countries and their current states of politics as well as social regime. From the perspective of political factors, civil liberties assessed by Freedom house (as cited in [@owidhumanrights]) is imported to account for overall freedom and civil rights of ASEAN citizens; corruption perception index by [@TransparencyInternational] is incorporated to acknowledge the perception of corruption among ASEAN countries; electoral democracy rated by V-Dem (as cited in [@owiddemocracy]) is included to capture the extent of free-voting in ASEAN. Furthermore, from the social viewpoint, health expenses as a % of GDP is imported from the world bank [@healthexpen] to recognize the total spending on healthcare services in ASEAN nations; human development index [@owidhumandevelopmentindex] is imported to capture the overall view of key human development goals amid ASEAN countries; prevalence of undernourishment (% of population) [@prevalence] is included to address the potential correlation between hunger issues in ASEAN towards their clean water and sanitation progress. In summary, by having political indicators that represent civil liberty rights, corruption perception, and electoral democracy, the potential relationship between the state of politics and the clean water and sanitation progress in ASEAN countries is captured. The representing social indicators allows us to explore the potential correlation between social factors such as health expenditure, human development, undernourishment issues and the advancement of clean water and sanitation among ASEAN nations.
+
+```{r}
+glimpse(base_data)
+glimpse(base_data2)
+glimpse(sanitation_and_mortality_data)
+glimpse(civil_liberties)
+glimpse(CPI)
+glimpse(electoral_democracy)
+glimpse(health_expense_as_GDP)
+glimpse(human_development_index)
+glimpse(prevalence_of_undernourishment_of_population)
+```
+
+### Initial overview 
+The glimpse() function is utilized to give an overview. Currently, we have nine existing data sets. 
+
+The datasets from the wbstats package, namely, the base_data, base_data2, and sanitation_and_mortality_data, all contain seven columns ranging from specific country ISO3 codes to indicator IDs. The dates of them are correspondingly the fixed interval from the year 2001 to the year 2020. All of the indicators are currently stacked on top of each other. The same issue could also be identified with the date column. Lastly, the data sets would also require some adjoining to become more concise. 
+
+The civil_liberties dataset contains 3,549 observations of entity, indicator code, year, and civil liberty score. The dataset consists of civil liberty scores of all countries from the early 2000s to 2021. Thus, filtering out ASEAN countries and the desired values for specific years ought to be done. The same could be said with the dataset "CPI". CPI consists of 31 rows and 21 columns where many of the columns are not needed for our analysis. It also requires filtering out ASEAN countries from its observations. Next, the electoral_democracy dataset has 32,518 rows and 6 columns because its electoral democracy ratings are dated back to the late 1700s for some countries. The same process as the previous two datasets should be gone through with electoral_democracy.  
+
+Moving on to the datasets consisting of social factors, health_expense_as_GDP has 4 columns of 2,177 observations where the health expenses as a percentage of GDP are recorded in column 4. The dataset "human_development_index" also comprises 4 columns, but with 5,923 observations because its HDI values date back to the 1990s. Lastly, the dataset "prevalence_of_undernourishment_of_population" contains 8 rows of 266 observations, where some of its columns are redundant for our analysis. All three of the datasets should be cut down to consist of only ASEAN countries and the most recent data of the respective indicators. 
+
+
+## D. Data Wrangling
+
+### Wrangling, tidying, and cleaning economic data
+Firstly, we combine the three wbstats data sets to efficiently maneuver the subsequent data tidying and wrangling. 
+
+```{r, message = FALSE}
+# 1. join the three data sets
+data_1stjoin <- full_join(
+  base_data,
+  base_data2
+)
+
+economic_data <- full_join(
+  data_1stjoin,
+  sanitation_and_mortality_data
+)
+```
+
+Because all of the data sets consist of the same seven columns, all join functions would work fine. In our case, we went with the full join function to first combine base_data with base_data2. Then, we unite the regarded joined data set with the last of the three data sets, sanitation_and_mortality_data, and named the combined data set "economic_data". The data set "economic_data" consists of 887 observations and the same seven columns as the above data. 
+
+Following that, we would need to ensure that the variables are under the correct column type, i.e. values should be labelled numeric data and categorical variables should be converted to factors. The latter is because factorization of categorical data would ensure their usability in statistical modelling procedures as they can be either string or numeric variables. Lastly, we would also need to have the "date" column be of the correct label under the "date" or "time" data type.  
+
+```{r}
+# 2. check column type (convert characters to factors?)
+glimpse(economic_data)
+
+economic_data1 <- economic_data %>% 
+  convert(
+    fct(iso3c, indicatorID, indicator, iso2c, country) 
+  ) 
+ 
+economic_data1$date <- as.Date(paste(economic_data1$date, 1, 1, sep = "-"))
+
+glimpse(economic_data1)
+```
+
+From the glimpse() function, the column "value" is labelled correctly as numeric data. However, the five other columns are classified as character variables. For the mentioned reasons, we convert the five character variables to factors. Further, the column "date" is converted into its correct data type utilizing the as.Date() function. By performing another glimpse() function, we confirm that all columns are now labelled correctly under their respective data type.
+
+Further, to prepare our data for modelling purposes, we would need to ensure that all the indicators are of the same length. That is to say, the same amount of observations for each indicator is needed to produce comparable results for each ASEAN country. 
+
+Data transformation is not needed at the current stage because the indicators chosen are either in percentage or relative proportion to their respective population. However, for later modelling purposes, the normality of each indicator will be examined and amended on the results of the Shapiro-Wilk test. 
+
+```{r}
+# 3. indicators... diff year... unable to model
+economic_data1 %>% 
+  group_by(indicator) %>% 
+  count()
+```
+
+By investigating the number of observations acquired using the group_by() and count() functions, we found amounts of observations per indicator not tallied with each other. For example, GINI Index recorded 66 observations throughout 2001-2020, while FDI Inflows recorded 200 observations for the same period. Thus, further data wrangling ought to be performed. 
+
+```{r}
+# 4. separate all indicators
+safe_water <- economic_data1 %>% 
+  filter(indicatorID == "SH.H2O.SMDW.ZS") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+
+handwashing <- economic_data1 %>% 
+  filter(indicatorID == "SH.STA.HYGN.ZS") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+  
+mortality_unsafe_water <- economic_data1 %>% 
+  filter(indicatorID == "SH.STA.WASH.P5") %>% 
+  select(-indicatorID)
+
+Gini <- economic_data1 %>% 
+  filter(indicatorID == "SI.POV.GINI") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date)) 
+
+FDI <- economic_data1 %>% 
+  filter(indicatorID == "BX.KLT.DINV.WD.GD.ZS") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+
+poverty <- economic_data1 %>% 
+  filter(indicatorID == "SI.POV.NAHC") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+
+economic_fitness <- economic_data1 %>% 
+  filter(indicatorID == "EF.EFM.OVRL.XD") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+
+labor <- economic_data1 %>% 
+  filter(indicatorID == "SL.TLF.ACTI.ZS") %>% 
+  select(-indicatorID) %>% 
+  group_by(country) %>% 
+  filter(date == max(date))
+```
+
+We separate the previously joined data set, "economic_data1", by the indicators. There are two purposes for this step. First, separating the data set by indicators would ensure the usability of each indicator to generate their respective time series visualizations in later parts of data reporting. The second justification for this step is that some indicators have different "latest recorded data" from their peers. For example, some ASEAN countries have their latest poverty data to be of the year 2018 and their latest safe water usage data to be the year 2020. We would not be able to capture all of its latest data from different years across indicators using the filter() and max(date) functions if the indicators are not separated as shown. 
+
+To summarize the functions used, we first filter the data set by its respective indicator ID. Then, we utilize the group_by() function to group the indicators by ASEAN countries to further filter out the most recent data on that specific indicator. It is also worth noting that we removed the column "indicator_id" in concert as it is essentially a duplicate of column "indicator".
+
+The next step is to merge the indicators back together to have a complete data set of the most recent indicator values by each ASEAN country.
+
+```{r, message=FALSE}
+# 5. join again
+list1 <- list(safe_water, handwashing, mortality_unsafe_water, Gini, FDI, poverty, economic_fitness, labor)
+
+ASEAN_economic_data <- list1 %>% 
+  reduce(full_join)
+  
+ASEAN_economic_data1 <- ASEAN_economic_data %>% 
+  pivot_wider(
+    names_from = indicator,
+    values_from = value
+  ) %>% 
+  select(-(c(iso2c, iso3c))) %>% 
+  rename(People_using_safely_managed_drinking_water_services_percentage_of_population = `People using safely managed drinking water services (% of population)`) %>% 
+  rename(People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population = `People with basic handwashing facilities including soap and water (% of population)`) %>% 
+  rename(Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population = `Mortality rate attributed to unsafe water, unsafe sanitation and lack of hygiene (per 100,000 population)`) %>% 
+  rename(Gini_index = `Gini index`) %>% 
+  rename(Foreign_direct_investment_net_inflows_percentage_of_GDP = `Foreign direct investment, net inflows (% of GDP)` ) %>% 
+  rename(Poverty_headcount_ratio_at_national_poverty_lines_percentage_of_population = `Poverty headcount ratio at national poverty lines (% of population)`) %>% 
+  rename(Economic_fitness_metric = `Economic Fitness Metric (Legacy)`) %>% 
+  rename(Labor_force_participation_rate = `Labor force participation rate, total (% of total population ages 15-64) (modeled ILO estimate)` )
+
+glimpse(ASEAN_economic_data1)
+```
+
+Because we essentially have six data sets to merge, it would be redundant to use the join functions. Thus, we first store all the indicator data sets into a list. Then, we utilize the reduce() function to join all six data sets together in one go. 
+
+Next, to have each column represent one indicator and its indicator values as its rows, we use the pivot_wider() function to do exactly that. In the meantime, we further clean the data set by removing columns "iso2c" and "iso3c" as they share the same characteristics as column "country". Lastly, we removed the space between the indicator labelled names to make it look cleaner and enhance their functionality utilizing the rename() function. 
+
+To summarize using the glimpse() function, we now have ten columns and 46 rows of values under the data set named "ASEAN_economic_data1". Data set model_data1 consists of columns "date", "country", and all six of our indicators. 
+
+Right away, we are able to observe missing values in the indicator columns.
+
+```{r}
+# 6. check for missing values + imputation (remember to cite) 
+
+which(is.na(ASEAN_economic_data1)) # which cells are N/A
+sum(is.na(ASEAN_economic_data1)) # number of N/A
+
+outsourced_data <- data.frame(
+                              c("2020-01-01", "2020-01-01", "2020-01-01", "2019-01-01", "2020-01-01","2020-01-01","2020-01-01", "2019-01-01", "2019-01-01", "2019-01-01", "2017-01-01", "2017-01-01"),
+                              c("Vietnam", "Brunei Darussalam", "Indonesia", "Thailand", "Malaysia", "Singapore", "Brunei Darussalam", "Cambodia", "Singapore", "Brunei Darussalam", "Singapore", "Brunei Darrusalam"),
+                              c(97.4,100, 93.9, 99.5, NA, NA, NA,NA,NA,NA,NA,NA),
+                              c(NA, NA, NA, NA, 99, 99, 99,NA,NA,NA,NA,NA),
+                              c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA),
+                              c(NA,NA,NA,NA,NA,NA,NA,45.4, 66.3, 63.4,NA,NA),
+                              c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA),
+                              c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,10,5)
+                              ) 
+  
+names(outsourced_data) <- c("date", "country", "People_using_safely_managed_drinking_water_services_percentage_of_population", "People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population","Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population","Gini_index","Foreign_direct_investment_net_inflows_percentage_of_GDP","Poverty_headcount_ratio_at_national_poverty_lines_percentage_of_population")
+
+outsourced_data$date <- as.Date(paste(outsourced_data$date, 1, 1, sep = "-"))
+
+ASEAN_econtable_data <- rbind(ASEAN_economic_data1, outsourced_data)
+
+```
+
+By using the which() and sum() functions combined with the is.na() function, we are able to identify 300 missing values and their respective positions in the data set "model_data1". 
+
+To achieve the most optimal modelling results, it is preferable to use real data points whenever possible instead of imputations of mean or median values. Thus, we gathered the missing indicator data points by searching through the search engines of other reputable organizations, such as the ASEAN statistics data portal, World Economics, and more. 
+
+Specifically, for the indicator representing the proportion of the population using safely managed water services, we noticed that the most recent data points for Vietnam, Brunei Darussalam, Indonesia, and Thailand are missing. We filled in the regarded values according to the ASEAN statistics data portal [-@ASEANstats2021]. Following that, we found Malaysia, Singapore, and Brunei Darussalams' missing values in the population proportion with basic handwashing facilities indicator and filled them in using data acquired from the JMP global database [-@JMP2020]. As for the GINI index, Cambodia, Singapore, and Brunei Darrusalam's most recent data were missing and subsequently ascribed using the data provided by World Economics [-@WorldEco2019]. Lastly, the missing poverty headcount ratio of Singapore and Brunei Darussalam are inserted using data from Singapore Management University and The Borgen Project [@SMU2017 ; @Borgen2017]. 
+
+The method used to assign the mentioned values was to create a new data frame, store all the values inside it, rename and change the column types to ensure that they are the same as the main dataset and finally combine the new data frame with the main data frame using the rbind() function. 
+
+Now that the values are all there, it's time for the final round of cleaning before we examine its characteristics. 
+
+```{r}
+#7. final tidying 
+ASEAN_table_data1 <- ASEAN_econtable_data %>% 
+  select(-date) #most recent year is what's important
+
+#safe water
+ASEAN_table_data1[7,2] <- ASEAN_table_data1[49,2]
+ASEAN_table_data1[8,2] <- ASEAN_table_data1[50,2]
+ASEAN_table_data1[9,2] <- ASEAN_table_data1[47,2]
+ASEAN_table_data1[10,2] <- ASEAN_table_data1[48,2]
+
+#handwashing
+ASEAN_table_data1[4,3] <- ASEAN_table_data1[51,3]
+ASEAN_table_data1[6,3] <- ASEAN_table_data1[52,3]
+ASEAN_table_data1[10,3] <- ASEAN_table_data1[53,3]
+
+#mortality
+ASEAN_table_data1[1,4] <- ASEAN_table_data1[12,4]
+ASEAN_table_data1[2,4] <- ASEAN_table_data1[13,4]
+ASEAN_table_data1[3,4] <- ASEAN_table_data1[14,4]
+ASEAN_table_data1[4,4] <- ASEAN_table_data1[15,4]
+ASEAN_table_data1[5,4] <- ASEAN_table_data1[16,4]
+ASEAN_table_data1[6,4] <- ASEAN_table_data1[17,4]
+ASEAN_table_data1[7,4] <- ASEAN_table_data1[11,4]
+ASEAN_table_data1[8,4] <- ASEAN_table_data1[18,4]
+ASEAN_table_data1[9,4] <- ASEAN_table_data1[19,4]
+
+#gini
+ASEAN_table_data1[2,5] <- ASEAN_table_data1[20,5]
+ASEAN_table_data1[3,5] <- ASEAN_table_data1[21,5]
+ASEAN_table_data1[4,5] <- ASEAN_table_data1[22,5]
+ASEAN_table_data1[5,5] <- ASEAN_table_data1[23,5]
+ASEAN_table_data1[1,5] <- ASEAN_table_data1[54,5]
+ASEAN_table_data1[6,5] <- ASEAN_table_data1[55,5]
+ASEAN_table_data1[10,5] <- ASEAN_table_data1[56,5]
+
+#FDI
+ASEAN_table_data1[10,6] <- ASEAN_table_data1[24,6]
+
+#poverty
+ASEAN_table_data1[2,7] <- ASEAN_table_data1[20,7]
+ASEAN_table_data1[3,7] <- ASEAN_table_data1[21,7]
+ASEAN_table_data1[5,7] <- ASEAN_table_data1[23,7]
+ASEAN_table_data1[1,7] <- ASEAN_table_data1[25,7]
+ASEAN_table_data1[4,7] <- ASEAN_table_data1[26,7]
+ASEAN_table_data1[9,7] <- ASEAN_table_data1[27,7]
+ASEAN_table_data1[6,7] <- ASEAN_table_data1[57,7]
+ASEAN_table_data1[10,7] <- ASEAN_table_data1[58,7]
+
+#economic fitness
+ASEAN_table_data1[10,8] <- ASEAN_table_data1[28,8]
+ASEAN_table_data1[7,8] <- ASEAN_table_data1[29,8]
+ASEAN_table_data1[1,8] <- ASEAN_table_data1[30,8]
+ASEAN_table_data1[2,8] <- ASEAN_table_data1[31,8]
+ASEAN_table_data1[3,8] <- ASEAN_table_data1[32,8]
+ASEAN_table_data1[4,8] <- ASEAN_table_data1[33,8]
+ASEAN_table_data1[5,8] <- ASEAN_table_data1[34,8]
+ASEAN_table_data1[6,8] <- ASEAN_table_data1[35,8]
+ASEAN_table_data1[8,8] <- ASEAN_table_data1[36,8]
+ASEAN_table_data1[9,8] <- ASEAN_table_data1[37,8]
+
+#labor
+ASEAN_table_data1[4,9] <- ASEAN_table_data1[26,9]
+ASEAN_table_data1[10,9] <- ASEAN_table_data1[38,9]
+ASEAN_table_data1[7,9] <- ASEAN_table_data1[39,9]
+ASEAN_table_data1[1,9] <- ASEAN_table_data1[40,9]
+ASEAN_table_data1[2,9] <- ASEAN_table_data1[41,9]
+ASEAN_table_data1[3,9] <- ASEAN_table_data1[42,9]
+ASEAN_table_data1[5,9] <- ASEAN_table_data1[43,9]
+ASEAN_table_data1[6,9] <- ASEAN_table_data1[44,9]
+ASEAN_table_data1[8,9] <- ASEAN_table_data1[45,9]
+ASEAN_table_data1[9,9] <- ASEAN_table_data1[46,9]
+
+ASEAN_table_econs <- ASEAN_table_data1 %>% 
+  head(10)
+```
+
+We remove the date column as it is now excessive to have because the most recent values for each indicator are from different years. If deemed necessary, the column "date" can be transformed into dummy variables in future modelling procedures to examine the time effect on the indicators. To continue, we noticed that the data points are dispersed around the data set for the same reason stated. Thus, we begin the move-around to have each data point sit where the ASEAN countries' rows are. Lastly, as only the first 10 observations consist of real data values for each indicator of ASEAN countries, we filter out the unneeded observations using the head() function.
+
+```{r}
+glimpse(ASEAN_table_econs)
+```
+
+To summarize, the data set named "ASEAN_table_econs" is now wrangled, tidied and cleaned using the glimpse() function. It is ready for further examination. 
+
+
+### Wrangling, tidying, and cleaning political data
+As mentioned previously, the political datasets consists of columns that are deemed redundant for our analysis.
+
+```{r}
+CL2 <- civil_liberties %>% 
+  select(-Code) %>% 
+  rename(country = Entity)
+
+CPI2 <- CPI %>%
+  select(c(`Country / Territory`, `CPI score 2021`)) %>% 
+  rename(country = `Country / Territory`)
+
+ED2 <- electoral_democracy %>% 
+  select(c(Entity, Year, electdem_vdem_owid)) %>% 
+  rename(country = Entity)
+```
+
+The indicator code column in civil_liberties dataset is removed using the select() function as it is a repeat for every row. Only the country and CPI score columns of the dataset is selected using the select() function as our analysis is focused on countries' CPI scores; as for the electoral democracy dataset, columns consisting upper and lower confidence intervals of electoral democracy rating estimates are deselected using the select() function as they are unnecessary for the current analysis. 
+
+Each of their columns containing country names are renamed to "country" using the rename() function to ease the process of joining them together. 
+
+```{r, message = FALSE}
+poli_join1 <- full_join(
+  CL2,
+  CPI2
+)
+
+political_data <- full_join(
+  poli_join1,
+  ED2
+)
+```
+
+The dataset "political_data" is formed after joining the three regarded data frames. The function full_join() is utilized to not miss out on any important information. 
+
+Before we perform further data wrangling, it is important to ensure the column types are correct. 
+
+```{r}
+glimpse(political_data)
+
+political_data1 <- political_data %>% 
+  convert(
+    fct(country) 
+  ) 
+ 
+political_data1$Year <- as.Date(paste(political_data1$Year, 1, 1, sep = "-"))
+
+political_data2 <- political_data1 %>% 
+  rename(date = Year)
+
+glimpse(political_data2)
+```
+
+By utilizing the glimpse() function, we find the country column to be of type character and the Year column to be of type numeric. Factorization of categorical variables would ease the process of further wrangling. Thus, we amended column "country" from character type to factor to form groupings for ASEAN countries later using the convert(fct()) function. Column "Year" is fixed to its correct data type of date from numeric using the as.Date() function and it is renamed to "date" using the rename() function.
+
+Another glimpse() of dataset "political_data2" identifies all columns to be of correct type.
+
+The current state of the political dataset contains data from almost all countries alongside observations that range from year 2005 to year 2021. We would need to shrink the data to contain only the most recent observation for ASEAN countries to make it compatible with the economic data above.  
+
+```{r}
+political_data3 <- political_data2 %>% 
+  filter(country == "Malaysia" | country  == "Singapore"  | country == "Thailand" | country == "Laos" | country == "Philippines" | country == "Myanmar" | country == "Indonesia" | country == "Vietnam" | country == "Brunei" | country == "Cambodia")
+
+civil_lib_ASEAN <- political_data3 %>% 
+  na.omit() %>% 
+  select(c(country, date, civlibs_score_fh)) %>% 
+  group_by(country) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  add_row(country = "Brunei", date = as.Date("2022-01-01"), civlibs_score_fh = as.numeric("21")) %>% 
+  select(-date)
+
+CPI_ASEAN <- political_data3 %>% 
+  na.omit() %>% 
+  select(c(country, date, `CPI score 2021`)) %>% 
+  group_by(country) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  add_row(country = "Brunei", date = as.Date("2021-01-01")) %>% 
+  select(-date)
+
+electdem_ASEAN <- political_data3 %>% 
+  na.omit() %>% 
+  select(c(country, date, electdem_vdem_owid)) %>% 
+  group_by(country) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  add_row(country = "Brunei", date = as.Date("2021-01-01")) %>% 
+  select(-date)
+
+Yvariables_ASEAN <- ASEAN_table_econs %>% 
+  select(c(country, People_using_safely_managed_drinking_water_services_percentage_of_population, People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population, Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population))
+```
+
+In sequence, the political data of the ASEAN countries are filtered out using the filter() function. As the indicators have their most recent values stored in different years, the data must be split according to political variables. "civil_lib_ASEAN", "CPI_ASEAN", and "electdem_ASEAN" are created to take out their most recent recorded indicator values. To narrate the process, the na.omit() function is first used to remove observations that contain NA values. Then, the group_by() function is utilized to obtain the most recent value for each ASEAN country. The "civil_lib_ASEAN" dataset had a special case where Brunei has its most recent value in 2022 while the other ASEAN countries has their most recent value in 2021. Thus, its indicator value was manually inputted using the add_row() function. As there were no data of Brunei available for datasets "CPI_ASEAN" and "electdem_ASEAN", blank rows are created also utilizing the add_row() function. Finally, the date columns are removed for all three datasets using the select() function as the most recent values for each indicators are different. 
+
+As Y variables for ASEAN countries have already been filtered before during the wrangling process of economic data, we select the regarded indicators and store it into a data frame named "Yvariables_ASEAN" using the select() function.
+
+Now that we have acquired the most recent values for each political indicator, what is left is to tidy them up and perform some final cleaning. 
+
+```{r, message=FALSE}
+list2 <- list(Yvariables_ASEAN, civil_lib_ASEAN, CPI_ASEAN, electdem_ASEAN)
+
+ASEAN_political_data <- list2 %>% 
+  reduce(full_join)
+
+#lao 
+ASEAN_political_data[2,5] <- ASEAN_political_data[11,5]
+ASEAN_political_data[2,6] <- ASEAN_political_data[11,6]
+ASEAN_political_data[2,7] <- ASEAN_political_data[11,7]
+
+#brunei 
+ASEAN_political_data[10,5] <- ASEAN_political_data[12,5]
+
+ASEAN_table_politics <- ASEAN_political_data %>% 
+  head(10) 
+
+which(is.na(ASEAN_table_politics))
+
+# since only 10% missing, impute mean
+ASEAN_table_politics$`CPI score 2021`[is.na(ASEAN_table_politics$`CPI score 2021`)] <- mean(ASEAN_table_politics$`CPI score 2021`, na.rm = TRUE)
+
+ASEAN_table_politics$electdem_vdem_owid[is.na(ASEAN_table_politics$electdem_vdem_owid)] <- mean(ASEAN_table_politics$electdem_vdem_owid, na.rm = TRUE)
+
+```
+
+The datasets are joined to form a complete view of ASEAN countries' clean water and sanitation indicators alongside their political indicator values using the list() and reduce(full_join()) functions. 
+
+There were duplicates of "Brunei","Brunei Darussalam", "Laos", and "Lao PDR". Thus, we clean up the data by removing the duplicates. 
+
+Lastly, variables "corruption perception index" and "electoral democracy estimate score" are identified with missing values using the which(is.na()) function. As the missing values only sum up to 10% of their respective columns, we replace the regarded missing values with their mean values using the mean() function. 
+
+```{r}
+glimpse(ASEAN_table_politics)
+```
+
+To summarize, the dataset "ASEAN_table_politics" is now ready for further analysis utilizing the glimpse() function. 
+
+
+### Wrangling, tidying, and cleaning social data
+On par with the pre-processed political indicators, many redundant columns are identified with the social indicator datasets.
+
+```{r, message=FALSE}
+HE2 <- health_expense_as_GDP %>% 
+  select(c(`Country Name`, `Indicator Name`, `2019`)) %>% 
+  rename(country = `Country Name`) %>% 
+  pivot_wider(
+    names_from = `Indicator Name`,
+    values_from = `2019`)
+
+ED2 <- prevalence_of_undernourishment_of_population %>% 
+  select(c(`Country Name`, `Indicator Name`, `2020`)) %>% 
+  rename(country = `Country Name`) %>% 
+  pivot_wider(
+    names_from = `Indicator Name`,
+    values_from = `2020`
+  )
+
+soci_join1 <- full_join(
+  HE2,
+  ED2
+)
+```
+
+We start the process by deselecting unneeded columns from variable "current health expenditure as % of GDP" using the select() function, renaming "Country Name" to country utilizing the rename() function to ease the process of joining, and utilizing the pivot_wider() function to take out 2019 values for the indicators. 2019 data is selected because it is the most complete out of all the years. The same process is repeated for variable "prevalence of undernourishment (% of population)". Its 2020 data is selected because it is the most complete.
+
+Because the social indicator dataset "human_development_index" is structured vastly different from these two social datasets, We first join these two data frames together using the full_join() function.  
+
+Before further processing, we ought to ensure the column types are correct.
+
+```{r}
+glimpse(soci_join1)
+
+social_data1 <- soci_join1 %>% 
+  convert(
+    fct(country) 
+  ) 
+ 
+glimpse(social_data1)
+```
+
+The glimpse() function is utilized to check on column types. The country column of the joined dataset is factorized to form groupings of countries later using the convert(fct()) function. Another glimpse() function sees the country column to identify as a factor.
+
+The current social data of health expenditure (% of GDP) and prevalence of undernourishment (% of population) consists of data of almost all of the nations. To focus on the research question, the data must be shrinked to consists of only the most recent social indicator values for ASEAN countries.
+
+```{r, message=FALSE}
+social_data2 <- social_data1 %>% 
+  filter(country == "Malaysia" | country  == "Singapore"  | country == "Thailand" | country == "Lao PDR" | country == "Philippines" | country == "Myanmar" | country == "Indonesia" | country == "Vietnam" | country == "Brunei Darussalam" | country == "Cambodia")
+
+HD2 <- human_development_index %>%
+  select(-Code) %>% 
+  rename(country = Entity)
+
+HD2$Year <- as.Date(paste(HD2$Year, 1, 1, sep = "-"), na.rm = TRUE)
+
+humandevelopment_ASEAN <- HD2 %>% 
+  filter(country == "Malaysia" | country  == "Singapore"  | country == "Thailand" | country == "Laos" | country == "Philippines" | country == "Myanmar" | country == "Indonesia" | country == "Vietnam" | country == "Brunei" | country == "Cambodia") %>% 
+  convert(fct(country)) %>% 
+  na.omit() %>% 
+  select(c(country, Year, `Human Development Index`)) %>% 
+  group_by(country) %>% 
+  filter(Year == max(Year)) %>% 
+  select(-Year)
+
+```
+
+The joined dataset is subsequently filtered to have only the designated social indicator data of ASEAN countries using the filter() function. Then, variable "human development index" goes through the same process of deleting unnecessary columns using the select() function, renaming its country representing column from "Entity" to "country" using the rename() function to ease joining later, converting its Year column to date format using the as.Date() function, filtering out countries aside from the ASEAN region using the filter() function, and ultimately finding ASEAN countries' most recent values for indicator human development index. To narrate the process, country is first factorized using the convert(fct()) function. Then, the necessary columns are selected using the select() function. Namely, columns country, Year, and Human Development Index. In sequence, the data is grouped by country using the group_by() function and the most recent value is filtered using the filter(max()) function. Lastly, the Year column is removed using the select() function as it is no longer needed.
+
+Now that we have all three of the social indicators' most recent values for ASEAN countries captured, all that is left is to join them back together and perform some final cleaning. 
+
+```{r, message=FALSE}
+list3 <- list(Yvariables_ASEAN, social_data2, humandevelopment_ASEAN)
+
+ASEAN_social_data <- list3 %>% 
+  reduce(full_join)
+
+#lao 
+ASEAN_social_data[2,7] <- ASEAN_political_data[11,7]
+
+#brunei 
+ASEAN_social_data[10,7] <- ASEAN_political_data[12,7]
+
+ASEAN_table_social <- ASEAN_social_data %>% 
+  head(10) 
+
+which(is.na(ASEAN_table_social))
+
+# since only 10% missing, impute mean
+ASEAN_table_social$`Prevalence of undernourishment (% of population)`[is.na(ASEAN_table_social$`Prevalence of undernourishment (% of population)`)] <- mean(ASEAN_table_social$`Prevalence of undernourishment (% of population)`, na.rm = TRUE)
+
+ASEAN_table_social$`Human Development Index`[is.na(ASEAN_table_social$`Human Development Index`)] <- mean(ASEAN_table_social$`Human Development Index`, na.rm = TRUE)
+```
+
+We then join the previously joined data frame with the two social indicators together with the data frame containing the Y-variables and the data frame consisting of Human Development index values to have a complete view of the social data using the list() and reduce(full_join()) functions. There were also duplicates of countries "Brunei" and "Lao". Thus, the removal of the identical rows ought to be done. Lastly, variables "Prevalence of undernourishment (% of population)" and "Human Development Index" have been spotted with missing value for individual ASEAN countries using the which(is.na()) function. As the missing values only amounted to 10% of the data, we excuse it by imputing their respective mean values using a more complicated version of the mean() function.
+
+```{r}
+glimpse(ASEAN_table_social)
+```
+
+Using the glimpse() function, we now acknowledge that the dataset "ASEAN_table_social" is now ready for further analysis and examination.
+
+
+### Data transformation on economic, political, and social data
+```{r}
+# check for normality
+shapiro_econ_data <- ASEAN_table_econs %>% 
+  ungroup() %>% 
+  select(-country) 
+
+shapiro_politics_data <- ASEAN_table_politics %>% 
+  ungroup() %>% 
+  select(-c(country:Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population))
+
+shapiro_social_data <- ASEAN_table_social %>% 
+  ungroup() %>% 
+  select(-c(country:Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population))
+
+
+l_shapiro_econ <- lapply(shapiro_econ_data, shapiro.test)
+l_shapiro_poli <- lapply(shapiro_politics_data, shapiro.test)
+l_shapiro_soci <- lapply(shapiro_social_data, shapiro.test)
+
+s_shapiro_econ <- sapply(l_shapiro_econ, `[`,"p.value")
+s_shapiro_poli <- sapply(l_shapiro_poli, `[`,"p.value")
+s_shapiro_soci <- sapply(l_shapiro_soci, `[`,"p.value")
+
+s_shapiro_econ 
+s_shapiro_poli
+s_shapiro_soci
+```
+
+To check the normality of all of the variables, the Shapiro-Wilk test is performed using the shapiro.test() function. To be specific, first, the country column is removed for all three dataset utilizing the ungroup() and select() functions because it is categorical. The Y-variables columns are removed for the political and social datasets using the select() function as it would be redundant of the test. Then, the lapply() function is utilized to perform the Shapiro-Wilk test. In sequence, the sapply() function is utilized to take out only the P-values of the indicators from the test to make it neat.  
+
+From their respective P-values, variables "People using safely managed drinking water services (% of population)", "GINI Index", "Foreign Direct Investment net inflow as a % of GDP", "Corruption Perception Index", and "Human Development Index" are identified to differ from normal distribution. Thus, scaling or standardization ought to be done before building models using these variables. However, because data transformation procedures such as scaling risk ruining the interpretability of the variables' summary statistics, it will not be performed in this data report but later when machine learning models are to be built. 
+
+
+## E. Final Presentation
+
+### Final overview
+```{r}
+# final overview
+glimpse(ASEAN_table_econs)
+```
+
+The final overview of the tidied and transformed data set, "ASEAN_table_econs" is presented above (10 rows; 9 columns). The data set is made of data from the ten ASEAN countries and their most recent indicator values. The indicators included in this research are: 
+1. People using safely managed drinking water services (% population)
+2. People with basic handwashing facilities including soap and water (% population)
+3. Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene (per 100,000 population)
+4. GINI index  
+5. Foreign direct investment net inflows (% of GDP)
+6. Poverty headcount ratio at national poverty lines (% population)
+7. Economic fitness metric (Legacy)
+8. Labor force participation rate (% population)
+
+Where indicators 1,2,3 are response variables; indicators 4,5,6,7,8 are explanatory variables.
+
+```{r}
+glimpse(ASEAN_table_politics)
+```
+
+From the political perspective, "ASEAN_table_politics" is presented above where the dataset consists of data from all of the ASEAN nations and their most recent clean water and sanitation alongside political factors' indicator values. 
+
+Namely, the indicators included in this table are:
+1. People using safely managed drinking water services (% population)
+2. People with basic handwashing facilities including soap and water (% population)
+3. Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene (per 100,000 population)
+4. Civil liberty score  
+5. Corruption perception index score
+6. Electoral democracy estimate score 
+
+Where variables 1,2,3 are response variables; indicators 4,5,6 are explanatory variables.
+
+```{r}
+glimpse(ASEAN_table_social)
+```
+
+From the social point of view, "ASEAN_table_social" is shown above [10 observations, 7 variables]. Specifically, the table consists of:
+
+1. People using safely managed drinking water services (% population)
+2. People with basic handwashing facilities including soap and water (% population)
+3. Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene (per 100,000 population)
+4. Current health expenditure as a % of GDP 
+5. Prevalence of undernourishment as a % of population
+6. Human development index score 
+
+Where variables 1,2,3 are response variables; indicators 4,5,6 are explanatory variables.
+
+
+### Summary tables
+```{r}
+# table summary 
+table1 <- ASEAN_table_econs %>%
+  rename(`People using safely managed drinking water services as percentage of population` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`People with basic handwashing facilities including soap and water as percentage of population` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>% 
+  rename( `GINI Index` = Gini_index) %>% 
+  rename(`Foreign direct investment net inflows as percentage of GDP` = Foreign_direct_investment_net_inflows_percentage_of_GDP) %>%
+  rename(`Poverty headcount ratio at national poverty lines percentage of population` = Poverty_headcount_ratio_at_national_poverty_lines_percentage_of_population) %>% 
+  rename(`Economic fitness metric` = Economic_fitness_metric) %>% 
+  rename(`Labor force participation rate` = Labor_force_participation_rate) %>% 
+  tbl_summary(
+    type = c(`People using safely managed drinking water services as percentage of population` = "continuous",    `People with basic handwashing facilities including soap and water as percentage of population` = "continuous", `Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = "continuous",
+             `Economic fitness metric` = "continuous",
+             `Labor force participation rate` = "continuous"),
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%) ") 
+    ) %>% 
+  modify_header(label ~ "Variable") %>% 
+  bold_labels
+
+table2 <- ASEAN_table_politics %>%
+  rename(`People using safely managed drinking water services as percentage of population` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`People with basic handwashing facilities including soap and water as percentage of population` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>% 
+  rename(`Civil liberty score` = civlibs_score_fh) %>% 
+  rename(`Corruption Perception Index score` = `CPI score 2021`) %>% 
+  rename(`Electoral democracy score` = electdem_vdem_owid) %>% 
+  tbl_summary(
+    type = c(`People using safely managed drinking water services as percentage of population` = "continuous",    `People with basic handwashing facilities including soap and water as percentage of population` = "continuous", `Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = "continuous",
+             `Civil liberty score` = "continuous"),
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%) ") 
+    ) %>% 
+  modify_header(label ~ "Variable") %>% 
+  bold_labels
+
+table3 <- ASEAN_table_social %>%
+  rename(`People using safely managed drinking water services as percentage of population` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`People with basic handwashing facilities including soap and water as percentage of population` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>%
+  tbl_summary(
+    type = c(`People using safely managed drinking water services as percentage of population` = "continuous",    `People with basic handwashing facilities including soap and water as percentage of population` = "continuous", `Mortality rate attributed to unsafe water unsafe sanitation and lack of hygiene per 100000 population` = "continuous"),
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%) ") 
+    ) %>% 
+  modify_header(label ~ "Variable") %>% 
+  bold_labels
+
+table1 %>% 
+  modify_caption("**Table 1: Country-level Data Summary Statistics on the Y-variables and economic variables") %>% 
+  as_hux_table()
+
+table2 %>% 
+  modify_caption("**Table 2: Country-level Data Summary Statistics on the Y-variables and political variables") %>% 
+  as_hux_table()
+
+table3 %>% 
+  modify_caption("**Table 3: Country-level Data Summary Statistics on the Y-variables and social variables") %>% 
+  as_hux_table()
+```
+
+The first table summary using the tbl_summary() function presents the Y variables and economic indicators according to their mean and standard deviation values to provide a comprehensive summary of the final economic data. Mean and standard deviation are preferred instead of median and quartiles because the sample size is small. The type of variables is specified to be continuous inside the tbl_summary() function because they were initially treated as categorical data. Lastly, the header of the table is modified to "Variable" to make it neat. 
+
+The same procedures are done for the second and third table summary, the only difference being that the second table summary represents the political factors alongside the Y variables and the third table summary shows the social variables alongside the Y variables. 
+
+
+### Correlation matrices 
+```{r}
+# correlation between variables
+
+prep_ASEAN_table_econs <- ASEAN_table_econs %>% 
+  rename(`Safe water` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`Handwashing` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality unsafe water` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>% 
+  rename(`GINI` = Gini_index) %>% 
+  rename(`FDI inflow` = Foreign_direct_investment_net_inflows_percentage_of_GDP) %>% 
+  rename(`Poverty` = Poverty_headcount_ratio_at_national_poverty_lines_percentage_of_population) %>% 
+  rename(`Economic fitness` = Economic_fitness_metric) %>% 
+  rename(`Labor force` = Labor_force_participation_rate)
+
+prep_ASEAN_table_politics <- ASEAN_table_politics %>% 
+  rename(`Safe water` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`Handwashing` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality unsafe water` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>% 
+  rename(`Civil liberty` = civlibs_score_fh) %>% 
+  rename(`Corruption` = `CPI score 2021`) %>% 
+  rename(`Electoral democracy` = electdem_vdem_owid)
+  
+prep_ASEAN_table_social <- ASEAN_table_social %>% 
+  rename(`Safe water` = People_using_safely_managed_drinking_water_services_percentage_of_population) %>% 
+  rename(`Handwashing` = People_with_basic_handwashing_facilities_including_soap_and_water_percentage_of_population) %>% 
+  rename(`Mortality unsafe water` = Mortality_rate_attributed_to_unsafe_water_unsafe_sanitation_and_lack_of_hygiene_per_100000_population) %>% 
+  rename(`Health expense` = `Current health expenditure (% of GDP)`) %>% 
+  rename(`Undernourishment` = `Prevalence of undernourishment (% of population)`) %>% 
+  rename(`HDI` = `Human Development Index`)
+                            
+  
+cor_matrix_econs <- cor(prep_ASEAN_table_econs[, unlist(lapply(prep_ASEAN_table_econs, is.numeric))]) 
+cor_matrix_poli <- cor(prep_ASEAN_table_politics[, unlist(lapply(prep_ASEAN_table_politics, is.numeric))])
+cor_matrix_soci <- cor(prep_ASEAN_table_social[, unlist(lapply(ASEAN_table_social, is.numeric))])
+
+
+corrplot1 <- corrplot(cor_matrix_econs, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+
+corrplot2 <- corrplot(cor_matrix_poli, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+
+corrplot3 <- corrplot(cor_matrix_soci, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+```
+
+Additionally, three correlation matrices are created to examine the relationship between each Y variables and their economic, political, and social explanatory variables as well as to identify potential multicollinearity issues. The correlation matrices are converted into a correlation plots for easier interpretation purposes. 
+
+
+## F. Conclusion 
+
+### Result interpretation
+```{r}
+table1 %>% 
+  modify_caption("**Table 1: Country-level Data Summary Statistics on the Y-variables and economic variables") %>% 
+  as_hux_table()
+```
+
+Table "table1" comprehensively summarizes the data. First, every ASEAN country has one observation under their belt as only its most recent data on the respective indicators are recorded. There are ten countries inside ASEAN. Thus, naturally, each observation makes up 10% of the data. 
+
+Next, the variable "population proportion using safely managed water services" has a mean of 74 and a standard deviation of 33, indicating on average, 74% of the ASEAN countries' population have access to safely managed water services. However, the difference between the countries is wide, as inferred by the standard deviation. 
+
+Variable "population proportion with access to basic handwashing facilities" on the other hand, has a mean of 85 and a standard deviation of 14， signifying that the average ASEAN country would have 85% of its population fulfilled with basic handwashing services. The dispersion is smaller compared to the first Y-variable, however, the difference between nations should still be relatively significant. 
+
+Moving on, the last Y-variable, "mortality rate per 100,000 due to unsafe water services and lack of hygiene", has a mean of 4.7 and a standard deviation of 4.6. On average, the mortality rate attributed to unsafe water facilities and lack of hygiene is 4.7 per 100,000 in ASEAN countries. The difference between nations is big as indicated by the standard deviation being almost as large as the mean. 
+
+Variable "GINI index" has a mean of 44 and 12 being its standard deviation. According to UNICEF [-@UNICEF2018], a GINI index between 0.4-0.5 should be correlated with high-income disparity. In other words, ASEAN countries are subjected to high-income disparity according to the data. That said, the difference between countries is evident with a standard deviation of 12.
+
+Variable "Foreign Direct Investment (FDI) net inflow as a % of GDP" possesses a mean of 5.6 and a standard deviation of 6.9. An average ASEAN country has an FDI net inflow equivalent to 5.6% of its GDP. The dispersion between ASEAN countries is huge, with its standard deviation being higher than its mean value.
+
+The variable "poverty headcount ratio at national poverty line" has a mean of 12.4 and a standard deviation of 6.5. ASEAN countries have 12.4% of their population under their respective national poverty line on average. The difference between countries is once again significant, as indicated by its standard deviation. 
+
+The variable "economic fitness metric" has a mean of 1.26 and a standard deviation of 1.01. On a global scale, an economic fitness metric of 1.26 is considered above average in terms of countries' economic diversity and ability to produce complex goods [@Zacc2018]. That said, the difference between one ASEAN country and its peers should be significant, as presumed by its standard deviation of 1.01. 
+
+Last but not least, the variable "labor force participation rate" has a mean of 74 and a standard deviation of 8. This means on average, 74% of the ASEAN countries' population between 15 and 64 years of age are currently active in a job or at the bare-minimum job seeking. A standard deviation of 8 suggests the dispersion between ASEAN countries regarding labor force participation rate is evident but not large. 
+
+```{r}
+table2 %>% 
+  modify_caption("**Table 2: Country-level Data Summary Statistics on the Y-variables and political variables") %>% 
+  as_hux_table()
+```
+
+The country proportion statistics alongside the three Y variables will be ignored for the purpose of not repeating the interpretations. 
+
+As for the political factors, civil liberty score has a mean of 22 and a standard deviation of 8. According to Freedom House [-@freehouse], a civil liberty score of 22 generally categorises countries in the "partly-free" and "not-free" categories, depending on its civil rights score. Thus, it can be inferred that ASEAN countries generally do not perform well in terms of civil liberties. Moreover, its standard deviation of 8 also indicates that there is a large dispersion between ASEAN countries in terms of civil liberty. 
+
+Moving on, the corruption perception index score of ASEAN countries saw an average of 40 and a standard deviation of 17. A corruption perception index score of 40 would rank between the 50s among 213 countries [@transparency]. Therefore, the corruption circumstances in ASEAN countries are suggested to be of average globally. Significant differences are observed between ASEAN nations, as the standard deviation is almost half of the mean value.
+
+Lastly, the electoral democracy score of ASEAN scored an average of 0.29 with a standard deviation of 0.16. An electoral democracy score of 0.29 is considered average as majority of Asian countries sits between 0.2-0.4 [@owiddemocracy]. Similar to the other 2 political indicators, ASEAN countries show great dispersion between their electoral democracy score, as inferred by its standard deviation.
+
+```{r}
+table3 %>% 
+  modify_caption("**Table 3: Country-level Data Summary Statistics on the Y-variables and social variables") %>% 
+  as_hux_table()
+```
+
+As per the interpretation of table2, we will ignore the country proportion and the three Y-variables.
+
+The current health expenditure as a % of GDP recorded a mean of 4.04 and a standard deviation of 1.40. That is to say, the public spending of ASEAN countries amount to 4.04% of its GDP on average. Compared to OECD countries' average of 9.7%, this figure is substantially lower [@healthexpen] However, there would be large differences between ASEAN countries as its standard deviation amounts to 1.40, almost half of its mean.
+
+Furthermore, ASEAN countries' prevalence of undernourishment amounts to 5.46% of their population on average with a standard deviation of 1.76. In comparison to the global statistic of 16.6% being undernourished, ASEAN countries can be said to be performing well in this category [@prevalence]. That said, tallying with other indicators, the dispersion among ASEAN countries is significant. 
+
+Last but not least, ASEAN countries score an average of 0.66 in terms of their human development index with a standard deviation of 0.21. A human development index of 0.66 indicates a relatively developed population, which is considered to be "medium" in terms of global average [@owidhumandevelopmentindex]. A large distinction is once again inferred in terms of human development among ASEAN countries, as indicated by its standard deviation of 0.21. 
+
+In summary, acknowledging the mean and standard deviation of the variables lead to a deeper understanding of the data. Most of the data are dispersed as expected because the economic, political, and social development of ASEAN countries is known to be dissimilar. It opens up the gate for researchers to delve into deeper means as to why such dispersion exists and how is it correlated with the clean water and hygiene of the average ASEAN country.
+
+
+```{r}
+corrplot1 <- corrplot(cor_matrix_econs, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+```
+
+We will ignore the correlation between Y-variables as the relationship between them should naturally be strong. 
+
+Observing the correlation between the variable "population percentage using safely managed water" and the rest, the GINI index is weakly and positively correlated with it, FDI net inflow and it share a very weak negative relationship, poverty headcount ratio share a strongly negative correlation with it, economic fitness metric and it shares a moderate positive relationship and lastly labor force participation rate shares a weak negative relationship with it. 
+
+Moving on to the variable "population percentage with basic handwashing facility access", its correlation with the GINI index shows a moderately positive relationship. FDI net inflow shares a very weak positive relationship with it while the poverty headcount ratio shares a moderately-strong negative relationship with it. The economic fitness metric shares a moderate positive relationship with it and the labor force participation rate share a moderately weak negative relationship with it.
+
+Variable "mortality rate attributed to unsafe water usage and unhygienic practice" share a moderately strong negative relationship with the GINI index, a weak negative relationship with FDI net inflow, a strong positive relationship with poverty headcount ratio, a moderate negative relationship with Economic fitness metric, and a very weak negative relationship with labor force participation rate.
+
+As for the X-variables, the variable "GINI index" share a moderately strong positive relationship with FDI net inflow, a moderately weak negative relationship with variable poverty headcount ratio, a very weak negative relationship with economic fitness metric and a very weak positive relationship with labor force participation rate. 
+
+Variable "FDI net inflow" share a very weak positive relationship with the poverty headcount ratio, a very weak negative relationship with the economic fitness metric, and a moderate positive relationship with the labor force participation rate. 
+
+Variable "Economic fitness metric" share a weak negative relationship with the labor force participation rate. 
+
+```{r}
+corrplot2 <- corrplot(cor_matrix_poli, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+```
+
+Variable "population percentage using safely managed water" share a moderate positive relationship with the civil liberty score, a moderately strong positive relationship with the corruption perception index, and a moderately weak positive relationship with electoral democracy. 
+
+Variable "population percentage with basic handwashing facility access" share a strong positive relationship with the civil liberty score, a strong positive relationship with the corruption perception index, and a strong positive relationship with electoral democracy.
+
+Variable "mortality rate attributed to unsafe water usage and unhygienic practice" share a moderately strong negative relationship with the civil liberty score, a moderate negative relationship with the corruption perception index, and a moderately weak negative relationship with electoral democracy.
+
+As for the correlation between political variables, indicator "civil liberty scores" and "electoral democracy scores" seemingly share a strong positive relationship. This requires further inspection on the potential multicollinearity issues that may arise in future modelling procedures.
+
+```{r}
+corrplot3 <- corrplot(cor_matrix_soci, type = "upper", order = "original", 
+         tl.col = "black", tl.srt = 45)
+```
+
+According to corrplot3, the social indicators seemingly does not share meaningful relationships with the three clean water and sanitation indicators except for Human Development Index where:
+
+It shares a moderately strong positive relationship with variable "population percentage using safely managed water", a strong positive relationship with variable "population percentage with basic handwashing facility access", and a moderately strong negative relationship with variable "mortality rate attributed to unsafe water usage and unhygienic practice". 
+
+
+To summarize the findings from the correlation matrices, we now acknowledge that:
+
+1. Income inequalities, poverty, and economic complexity share moderate to strong relationships with the progress of clean water and sanitation in ASEAN countries. 
+
+2. Civil liberty, corruption perceptions, and electoral democracy all have moderate to strong correlations with ASEAN nations' clean water and sanitation progress. 
+
+3. Human development index shares a strong relationship with the ASEAN clean water and sanitation outlook.  
+
+Further, by investigating the Pearson correlation coefficients of the variables, we now have a basic idea as to how well some X-variables and their counterparts are going to fit into future machine-learning models. It makes the process of modelling more efficient and factual. Additionally, no multicollinearity issue arose when inspecting the correlations between the designated X-variables except for the correlation between variables "civil liberty score" and "electoral democracy estimate score" which could potentially be too strong.
+
+
+### Limitations
+
+Regarding the correlation matrices analysis, the statistical significance of the relationships are all unaccounted for. In other words, we would need p-values to further justify whether the clean water and sanitation indicators are truthfully correlated with the designated economic, political, and social development indicators. In order to find out the p-values of their correlation, linear regression models should be considered to further enhance the factuality of the research.
+
+Further, for the current state of analysis, the differentials at the country level between all of the indicators are not reflected. This could be improved upon by incorporating a dummy variable for each ASEAN country in future modelling processes. The same thing can be said with the timeline of the indicators. The trend of the designated indicators is not reflected in the models. Improvements on this matter can be done by incorporating the trend variable to measure the effect of time in future modelling processes.
+
+Lastly, in future models, we could consider and explore an even more diversified basket of economic, political, and social variables to find more meaningful correlations between indicators that could boost model performance even further. 
+
+
+### Conclusion
+
+From the summary tables, "table1-3", we learnt that there was a pattern of wide dispersion between ASEAN countries in terms of variables in general. This is expected as Southeast Asia consists of developed nations such as Singapore and Brunei Darussalam but also has low-income nations such as Myanmar and Cambodia. Further, the average values for the Y-variables show there is still room for improvements to achieve higher standards regarding the SDG goal of clean water and sanitation. Further solidifying the meaningfulness of the investigation on the effect of economic, political, and social variables on the progress of clean water and sanitation. 
+
+Following that, the correlation matrices, "corrplot1-3", previews the correlations between all the selected variables. 
+
+Out of all the economic variables, the variable "poverty headcount ratio" and "GINI index" seemingly explain the three Y-variables the best. This is also expected because the logic of the progress of clean water and sanitation being tied closely with the uplifting of poverty and income inequality in ASEAN countries is explicit. Another noticeable feature of the correlation matrix is that the variable "economic fitness metric" fits moderately well with the three Y variables. Economic fitness metric measures the economic complexity of a nation and its ability to produce compound goods. This could be an insight where the diversity of an ASEAN country's basket of produced goods and services is impalpably related to the achievement of nationwide clean water and sanitation.
+
+Following that, the political variables, namely, "civil liberty score", "corruption perception index", and "electoral democracy estimate score", all explain the regarded Y-variables reasonably well. It goes to show how a political state of nations can be closely related to the Sustainable Development Goals progresses such as clean water and sanitation.
+
+Last but not least, only variable "Human Development Index" correlates strongly with the designated three Y-variables. Which should not be of surprise as Human Development Index measures standard of living: the clean water and sanitation progress of a nation certainly falls in the category of developing a better overall standard of living.
+
+The conclusion is that through our investigation of the summary tables and correlation matrices, we were able to grasp a deeper understanding of the hidden patterns between economic, social, and political indicators and the progress of clean water and sanitation in ASEAN countries. By acknowledging these insights, ASEAN governments and NGOs would be able to have a better knowledge of what policies should work and what could be done in addition.
+
+
+## References
+
